@@ -9,6 +9,7 @@ from source.adapters.utils.data_filter import filter_user_data
 from source.adapters.utils.guardrails import is_competitor_comparison
 from source.adapters.utils.knowledge_base import SCENARIO_KNOWLEDGE_BASE
 from source.adapters.utils.mock_data import MOCK_CATALOG
+from source.adapters.utils.response_format import apply_response_quality
 
 
 def _extract_budget_cop(question: str) -> Optional[int]:
@@ -74,11 +75,17 @@ async def handle_products(state: GraphState) -> Dict[str, Any]:
     catalog_candidates = _build_catalog_candidates(filtered_data, question)
 
     if is_competitor_comparison(question):
-        return {
-            "generation": (
+        quality_text = apply_response_quality(
+            text=(
                 "No puedo comparar precios con otros comercios, "
                 "pero si quieres te muestro nuestras promociones activas."
             ),
+            user_data=filtered_data,
+            topic=topic_name,
+            add_follow_up=True,
+        )
+        return {
+            "generation": quality_text,
             "selected_topic": topic_name,
             "selected_agent": "handle_products",
             "last_topic_selected": topic_name,
@@ -97,8 +104,15 @@ async def handle_products(state: GraphState) -> Dict[str, Any]:
             "question": question,
         })
 
+        quality_text = apply_response_quality(
+            text=result.respuesta_final,
+            user_data=filtered_data,
+            topic=topic_name,
+            add_follow_up=True,
+        )
+
         return {
-            "generation": result.respuesta_final,
+            "generation": quality_text,
             "selected_topic": topic_name,
             "selected_agent": "handle_products",
             "last_topic_selected": topic_name,

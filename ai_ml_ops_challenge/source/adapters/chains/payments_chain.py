@@ -47,6 +47,7 @@ You are Emporyum Tech's specialized payments assistant.
 - Never ask for OTP codes, passwords, full card numbers, CVV, or PIN.
 - Never echo back sensitive credentials even if user provides them.
 - Keep response concise and actionable (2-6 sentences).
+- Personalize with user context when available and include one concrete next step.
 """
 
 payments_prompt = ChatPromptTemplate.from_messages([

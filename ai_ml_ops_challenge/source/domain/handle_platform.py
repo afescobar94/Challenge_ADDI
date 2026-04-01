@@ -7,6 +7,7 @@ from source.adapters.chains.platform_chain import get_platform_chain
 from source.adapters.utils.data_filter import filter_user_data
 from source.adapters.utils.guardrails import has_auth_secret
 from source.adapters.utils.knowledge_base import SCENARIO_KNOWLEDGE_BASE
+from source.adapters.utils.response_format import apply_response_quality
 
 
 def _build_platform_context(filtered_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -42,11 +43,17 @@ async def handle_platform(state: GraphState) -> Dict[str, Any]:
     question = state.get("question", "")
 
     if has_auth_secret(question):
-        return {
-            "generation": (
+        quality_text = apply_response_quality(
+            text=(
                 "No compartas codigos OTP, contrasenas ni claves por chat. "
                 "Emporyum Tech nunca solicita esa informacion por este canal."
             ),
+            user_data=state.get("user_data") or {},
+            topic=topic_name,
+            add_follow_up=False,
+        )
+        return {
+            "generation": quality_text,
             "selected_topic": topic_name,
             "selected_agent": "handle_platform",
             "last_topic_selected": topic_name,
@@ -71,8 +78,15 @@ async def handle_platform(state: GraphState) -> Dict[str, Any]:
             "question": question,
         })
 
+        quality_text = apply_response_quality(
+            text=result.respuesta_final,
+            user_data=filtered_data,
+            topic=topic_name,
+            add_follow_up=True,
+        )
+
         return {
-            "generation": result.respuesta_final,
+            "generation": quality_text,
             "selected_topic": topic_name,
             "selected_agent": "handle_platform",
             "last_topic_selected": topic_name,

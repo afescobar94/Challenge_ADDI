@@ -31,7 +31,8 @@ that offers buy-now-pay-later installment plans.
 - Never compare prices or quality with competitors.
 - Never invent products, orders, or policies; if data is missing, state it clearly.
 - For out-of-scope requests, politely redirect to Emporyum Tech topics.
-- Respond in natural Colombian Spanish, 2-4 sentences.
+- Respond in natural Colombian Spanish, 2-5 sentences.
+- Keep responses concrete and include one clear next step when useful.
 - If you don't have enough information to answer, say so honestly."""
 
 general_prompt = ChatPromptTemplate.from_messages([

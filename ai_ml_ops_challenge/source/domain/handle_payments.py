@@ -9,6 +9,7 @@ from source.adapters.utils.data_filter import filter_user_data
 from source.adapters.utils.guardrails import has_auth_secret, has_sensitive_payment_data
 from source.adapters.utils.knowledge_base import SCENARIO_KNOWLEDGE_BASE
 from source.adapters.utils.mock_data import INSTALLMENT_PLANS
+from source.adapters.utils.response_format import apply_response_quality
 
 
 def _extract_amount_and_months(question: str) -> Dict[str, Optional[int]]:
@@ -111,11 +112,17 @@ async def handle_payments(state: GraphState) -> Dict[str, Any]:
     question = state.get("question", "")
 
     if has_sensitive_payment_data(question) or has_auth_secret(question):
-        return {
-            "generation": (
+        quality_text = apply_response_quality(
+            text=(
                 "Por seguridad, no compartas datos de tarjeta, OTP, claves o contrasenas por chat. "
                 "Usa siempre los canales seguros de la app para gestionar pagos."
             ),
+            user_data=state.get("user_data") or {},
+            topic=topic_name,
+            add_follow_up=False,
+        )
+        return {
+            "generation": quality_text,
             "selected_topic": topic_name,
             "selected_agent": "handle_payments",
             "last_topic_selected": topic_name,
@@ -140,8 +147,15 @@ async def handle_payments(state: GraphState) -> Dict[str, Any]:
             "question": question,
         })
 
+        quality_text = apply_response_quality(
+            text=result.respuesta_final,
+            user_data=filtered_data,
+            topic=topic_name,
+            add_follow_up=True,
+        )
+
         return {
-            "generation": result.respuesta_final,
+            "generation": quality_text,
             "selected_topic": topic_name,
             "selected_agent": "handle_payments",
             "last_topic_selected": topic_name,

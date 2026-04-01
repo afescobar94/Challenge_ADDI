@@ -10,6 +10,7 @@ from source.application.state import GraphState
 from source.adapters.chains.returns_chain import get_returns_chain
 from source.adapters.utils.data_filter import filter_user_data
 from source.adapters.utils.knowledge_base import SCENARIO_KNOWLEDGE_BASE
+from source.adapters.utils.response_format import apply_response_quality
 
 
 ORDER_ID_PATTERN = re.compile(r"ORD-\d{4}-\d{3}", re.IGNORECASE)
@@ -352,7 +353,12 @@ async def handle_returns(state: GraphState) -> Dict[str, Any]:
             final_response = draft_response
 
     return {
-        "generation": final_response,
+        "generation": apply_response_quality(
+            text=final_response,
+            user_data=filtered_data,
+            topic=topic_name,
+            add_follow_up=False,
+        ),
         "selected_topic": topic_name,
         "selected_agent": "handle_returns",
         "last_topic_selected": topic_name,

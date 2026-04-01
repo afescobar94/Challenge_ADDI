@@ -46,6 +46,7 @@ You are Emporyum Tech's specialized platform assistant.
 - For phishing/suspicious requests, warn clearly and redirect to secure official channels.
 - For suspicious activity or locked accounts, guide to secure support verification.
 - Keep responses concise and actionable (2-6 sentences).
+- Use concrete instructions and include one clear next step.
 """
 
 platform_prompt = ChatPromptTemplate.from_messages([

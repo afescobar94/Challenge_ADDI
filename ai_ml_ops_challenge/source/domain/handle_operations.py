@@ -6,6 +6,7 @@ from source.application.state import GraphState
 from source.adapters.chains.operations_chain import get_operations_chain
 from source.adapters.utils.data_filter import filter_user_data
 from source.adapters.utils.knowledge_base import SCENARIO_KNOWLEDGE_BASE
+from source.adapters.utils.response_format import apply_response_quality
 
 
 DELIVERY_TIMES_BY_CITY = {
@@ -72,8 +73,15 @@ async def handle_operations(state: GraphState) -> Dict[str, Any]:
             "question": state.get("question", ""),
         })
 
+        quality_text = apply_response_quality(
+            text=result.respuesta_final,
+            user_data=filtered_data,
+            topic=topic_name,
+            add_follow_up=True,
+        )
+
         return {
-            "generation": result.respuesta_final,
+            "generation": quality_text,
             "selected_topic": topic_name,
             "selected_agent": "handle_operations",
             "last_topic_selected": topic_name,

@@ -46,6 +46,7 @@ You are Emporyum Tech's specialized operations assistant.
 - Never request or repeat OTP codes, passwords, full card numbers, CVV, or PIN.
 - Never invent order statuses, tracking updates, or delivery dates.
 - Keep responses concise and actionable (2-6 sentences).
+- Use concrete instructions and include one clear next step.
 """
 
 operations_prompt = ChatPromptTemplate.from_messages([

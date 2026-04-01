@@ -12,6 +12,7 @@ from source.application.state import GraphState
 from source.adapters.utils.knowledge_base import SCENARIO_KNOWLEDGE_BASE
 from source.adapters.utils.data_filter import filter_user_data
 from source.adapters.chains.general_chain import get_general_chain
+from source.adapters.utils.response_format import apply_response_quality
 
 
 # Fields the generic agent uses — a specialized agent would use fewer, topic-relevant fields.
@@ -39,7 +40,14 @@ async def handle_general(state: GraphState) -> Dict[str, Any]:
             "question": state["question"],
         })
 
-        return {"generation": result.respuesta_final}
+        selected_topic = state.get("selected_topic") or "FUERA_DE_ALCANCE"
+        quality_text = apply_response_quality(
+            text=result.respuesta_final,
+            user_data=filtered_data,
+            topic=selected_topic,
+            add_follow_up=selected_topic != "FUERA_DE_ALCANCE",
+        )
+        return {"generation": quality_text}
 
     except Exception as e:
         print(f"[ERROR] handle_general failed: {e}")
