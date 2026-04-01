@@ -11,6 +11,7 @@ from source.adapters.chains.returns_chain import get_returns_chain
 from source.adapters.utils.data_filter import filter_user_data
 from source.adapters.utils.knowledge_base import SCENARIO_KNOWLEDGE_BASE
 from source.adapters.utils.response_format import apply_response_quality
+from source.adapters.utils.safe_chain import get_result_text, log_node_error
 
 
 ORDER_ID_PATTERN = re.compile(r"ORD-\d{4}-\d{3}", re.IGNORECASE)
@@ -282,86 +283,113 @@ async def handle_returns(state: GraphState) -> Dict[str, Any]:
 
     topic_name = "DEVOLUCIONES"
     topic_data = SCENARIO_KNOWLEDGE_BASE.get(topic_name, {})
-    filtered_data = filter_user_data(state.get("user_data"), topic_data.get("variables", []))
 
-    question = state.get("question", "")
-    messages = state.get("messages", [])
-    orders = filtered_data.get("orders", []) if isinstance(filtered_data.get("orders", []), list) else []
+    try:
+        filtered_data = filter_user_data(state.get("user_data"), topic_data.get("variables", []))
+        question = state.get("question", "")
+        messages = state.get("messages", [])
+        orders = filtered_data.get("orders", []) if isinstance(filtered_data.get("orders", []), list) else []
 
-    in_progress = bool(state.get("is_return_in_progress", False))
-    current_step = state.get("current_step")
+        in_progress = bool(state.get("is_return_in_progress", False))
+        current_step = state.get("current_step")
 
-    inferred_step = _infer_step_from_messages(messages)
-    if not current_step and inferred_step:
-        current_step = inferred_step
-        in_progress = True
+        inferred_step = _infer_step_from_messages(messages)
+        if not current_step and inferred_step:
+            current_step = inferred_step
+            in_progress = True
 
-    if not in_progress:
-        in_progress = True
-    if not current_step:
-        current_step = "returns_step_1_collect_order"
+        if not in_progress:
+            in_progress = True
+        if not current_step:
+            current_step = "returns_step_1_collect_order"
 
-    reason = _infer_reason(question)
-    explicit_order_id = _extract_order_id(question)
-    historical_order_id = _extract_recent_order_id(messages)
+        reason = _infer_reason(question)
+        explicit_order_id = _extract_order_id(question)
+        historical_order_id = _extract_recent_order_id(messages)
 
-    if explicit_order_id:
-        order_id = explicit_order_id
-    elif current_step == "returns_step_1_collect_reason":
-        order_id = historical_order_id
-    else:
-        order_id = None
+        if explicit_order_id:
+            order_id = explicit_order_id
+        elif current_step == "returns_step_1_collect_reason":
+            order_id = historical_order_id
+        else:
+            order_id = None
 
-    order = _find_order(orders, order_id) if order_id else None
+        order = _find_order(orders, order_id) if order_id else None
 
-    decision = _build_draft_response(
-        step=current_step,
-        question=question,
-        filtered_data=filtered_data,
-        order=order,
-        reason=reason,
-    )
+        decision = _build_draft_response(
+            step=current_step,
+            question=question,
+            filtered_data=filtered_data,
+            order=order,
+            reason=reason,
+        )
 
-    next_step = decision["next_step"]
-    next_in_progress = decision["in_progress"]
-    draft_response = decision["draft"]
+        next_step = decision["next_step"]
+        next_in_progress = decision["in_progress"]
+        draft_response = decision["draft"]
 
-    should_bypass_chain = (
-        _requires_escalation(question)
-        or (current_step == "returns_step_1_collect_reason" and bool(reason))
-    )
+        should_bypass_chain = (
+            _requires_escalation(question)
+            or (current_step == "returns_step_1_collect_reason" and bool(reason))
+        )
 
-    if should_bypass_chain:
-        final_response = draft_response
-    else:
-        try:
-            chain = get_returns_chain()
-            result = await chain.ainvoke({
-                "current_step": current_step,
-                "returns_state": str({
-                    "order_id": order_id,
-                    "reason": reason,
-                    "in_progress": in_progress,
-                }),
-                "draft_response": draft_response,
-                "messages": messages,
-                "question": question,
-            })
-            final_response = result.respuesta_final
-        except Exception as e:
-            print(f"[ERROR] handle_returns chain failed: {e}")
+        if should_bypass_chain:
             final_response = draft_response
+        else:
+            try:
+                chain = get_returns_chain()
+                result = await chain.ainvoke({
+                    "current_step": current_step,
+                    "returns_state": str({
+                        "order_id": order_id,
+                        "reason": reason,
+                        "in_progress": in_progress,
+                    }),
+                    "draft_response": draft_response,
+                    "messages": messages,
+                    "question": question,
+                })
+                final_response = get_result_text(result, "respuesta_final", draft_response)
+            except Exception as e:
+                log_node_error(
+                    "handle_returns.chain",
+                    e,
+                    extra={"step": current_step, "order_id": order_id, "in_progress": in_progress},
+                )
+                final_response = draft_response
 
-    return {
-        "generation": apply_response_quality(
-            text=final_response,
-            user_data=filtered_data,
-            topic=topic_name,
-            add_follow_up=False,
-        ),
-        "selected_topic": topic_name,
-        "selected_agent": "handle_returns",
-        "last_topic_selected": topic_name,
-        "is_return_in_progress": next_in_progress,
-        "current_step": next_step,
-    }
+        return {
+            "generation": apply_response_quality(
+                text=final_response,
+                user_data=filtered_data,
+                topic=topic_name,
+                add_follow_up=False,
+            ),
+            "selected_topic": topic_name,
+            "selected_agent": "handle_returns",
+            "last_topic_selected": topic_name,
+            "is_return_in_progress": next_in_progress,
+            "current_step": next_step,
+        }
+    except Exception as e:
+        previous_in_progress = bool(state.get("is_return_in_progress", False))
+        previous_step = state.get("current_step")
+        if previous_in_progress and not previous_step:
+            previous_step = "returns_step_1_collect_order"
+
+        log_node_error(
+            "handle_returns",
+            e,
+            extra={"step": previous_step, "in_progress": previous_in_progress},
+        )
+        return {
+            "generation": (
+                "Disculpa, tuve un problema al procesar la devolucion. "
+                "Podemos continuar desde el ultimo paso si me compartes de nuevo el numero de pedido."
+            ),
+            "selected_topic": topic_name,
+            "selected_agent": "handle_returns",
+            "last_topic_selected": topic_name,
+            "is_return_in_progress": previous_in_progress,
+            "current_step": previous_step,
+        }

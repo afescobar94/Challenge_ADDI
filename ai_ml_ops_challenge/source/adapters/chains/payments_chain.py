@@ -64,4 +64,4 @@ def get_payments_chain():
         temperature=0,
         api_key=os.getenv("OPENAI_API_KEY"),
     )
-    return payments_prompt | llm.with_structured_output(PaymentsResponse)
+    return payments_prompt | llm.with_structured_output(PaymentsResponse, method="function_calling")

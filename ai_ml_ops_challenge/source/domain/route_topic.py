@@ -16,6 +16,7 @@ from source.adapters.utils.guardrails import (
     is_competitor_comparison,
     is_obviously_out_of_scope,
 )
+from source.adapters.utils.safe_chain import get_result_text, log_node_error
 
 
 def _safe_previous_topics(raw_topics: Any) -> List[str]:
@@ -152,12 +153,25 @@ async def route_topic(state: GraphState) -> Dict[str, Any]:
                 "question": question,
             })
 
-            selected_topic = result.selected_topic if result.selected_topic in VALID_TOPICS else fallback_topic
-            selected_agent = result.selected_agent or topic_agent_map.get(selected_topic, "handle_general")
-            router_reasoning = result.router_reasoning
+            raw_topic = get_result_text(result, "selected_topic", fallback_topic)
+            selected_topic = raw_topic if raw_topic in VALID_TOPICS else fallback_topic
+            selected_agent = get_result_text(
+                result,
+                "selected_agent",
+                topic_agent_map.get(selected_topic, "handle_general"),
+            )
+            router_reasoning = get_result_text(
+                result,
+                "router_reasoning",
+                "Model router classification applied.",
+            )
 
         except Exception as e:
-            print(f"[ERROR] route_topic failed: {e}")
+            log_node_error(
+                "route_topic",
+                e,
+                extra={"fallback_topic": fallback_topic, "last_topic": last_topic},
+            )
             selected_topic = fallback_topic
             selected_agent = fallback_agent
             router_reasoning = "Router fallback due to processing error."

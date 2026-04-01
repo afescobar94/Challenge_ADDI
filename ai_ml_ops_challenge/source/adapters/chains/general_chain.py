@@ -49,4 +49,4 @@ def get_general_chain():
         temperature=0,
         api_key=os.getenv("OPENAI_API_KEY"),
     )
-    return general_prompt | llm.with_structured_output(GeneralResponse)
+    return general_prompt | llm.with_structured_output(GeneralResponse, method="function_calling")

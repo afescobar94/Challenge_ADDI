@@ -65,4 +65,4 @@ def get_router_chain():
         temperature=0,
         api_key=os.getenv("OPENAI_API_KEY"),
     )
-    return router_prompt | llm.with_structured_output(RouterOutput)
+    return router_prompt | llm.with_structured_output(RouterOutput, method="function_calling")

@@ -10,6 +10,7 @@ from source.adapters.utils.guardrails import is_competitor_comparison
 from source.adapters.utils.knowledge_base import SCENARIO_KNOWLEDGE_BASE
 from source.adapters.utils.mock_data import MOCK_CATALOG
 from source.adapters.utils.response_format import apply_response_quality
+from source.adapters.utils.safe_chain import get_result_text, log_node_error
 
 
 def _extract_budget_cop(question: str) -> Optional[int]:
@@ -103,9 +104,14 @@ async def handle_products(state: GraphState) -> Dict[str, Any]:
             "messages": state.get("messages", []),
             "question": question,
         })
+        raw_response = get_result_text(
+            result,
+            "respuesta_final",
+            "En este momento no pude construir recomendaciones precisas, pero puedo ayudarte con opciones por categoria.",
+        )
 
         quality_text = apply_response_quality(
-            text=result.respuesta_final,
+            text=raw_response,
             user_data=filtered_data,
             topic=topic_name,
             add_follow_up=True,
@@ -119,7 +125,11 @@ async def handle_products(state: GraphState) -> Dict[str, Any]:
         }
 
     except Exception as e:
-        print(f"[ERROR] handle_products failed: {e}")
+        log_node_error(
+            "handle_products",
+            e,
+            extra={"topic": topic_name, "question": question},
+        )
         return {
             "generation": (
                 "Disculpa, tuve un problema al revisar productos y promociones. "

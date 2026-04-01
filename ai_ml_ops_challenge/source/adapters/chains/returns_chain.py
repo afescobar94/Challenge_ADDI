@@ -53,4 +53,4 @@ def get_returns_chain():
         temperature=0,
         api_key=os.getenv("OPENAI_API_KEY"),
     )
-    return returns_prompt | llm.with_structured_output(ReturnsResponse)
+    return returns_prompt | llm.with_structured_output(ReturnsResponse, method="function_calling")

@@ -7,6 +7,7 @@ from source.adapters.chains.operations_chain import get_operations_chain
 from source.adapters.utils.data_filter import filter_user_data
 from source.adapters.utils.knowledge_base import SCENARIO_KNOWLEDGE_BASE
 from source.adapters.utils.response_format import apply_response_quality
+from source.adapters.utils.safe_chain import get_result_text, log_node_error
 
 
 DELIVERY_TIMES_BY_CITY = {
@@ -72,9 +73,14 @@ async def handle_operations(state: GraphState) -> Dict[str, Any]:
             "messages": state.get("messages", []),
             "question": state.get("question", ""),
         })
+        raw_response = get_result_text(
+            result,
+            "respuesta_final",
+            "Puedo ayudarte a revisar el estado de tu pedido o el flujo de compra paso a paso.",
+        )
 
         quality_text = apply_response_quality(
-            text=result.respuesta_final,
+            text=raw_response,
             user_data=filtered_data,
             topic=topic_name,
             add_follow_up=True,
@@ -88,7 +94,11 @@ async def handle_operations(state: GraphState) -> Dict[str, Any]:
         }
 
     except Exception as e:
-        print(f"[ERROR] handle_operations failed: {e}")
+        log_node_error(
+            "handle_operations",
+            e,
+            extra={"topic": topic_name, "question": state.get("question", "")},
+        )
         return {
             "generation": (
                 "Disculpa, tuve un problema revisando tu solicitud operativa. "

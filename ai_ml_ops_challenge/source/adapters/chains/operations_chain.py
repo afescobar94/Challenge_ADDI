@@ -63,4 +63,4 @@ def get_operations_chain():
         temperature=0,
         api_key=os.getenv("OPENAI_API_KEY"),
     )
-    return operations_prompt | llm.with_structured_output(OperationsResponse)
+    return operations_prompt | llm.with_structured_output(OperationsResponse, method="function_calling")
