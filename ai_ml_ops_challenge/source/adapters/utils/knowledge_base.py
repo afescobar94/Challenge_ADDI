@@ -284,7 +284,7 @@ SCENARIO_KNOWLEDGE_BASE: dict = {
         ],
     },
     "DEVOLUCIONES": {
-        "responsible_agent": "handle_general",
+        "responsible_agent": "handle_returns",
         "contexto": "Returns, refund policy, eligibility checks, and escalation cases.",
         "pregunta": "quiero devolver / devolucion / reembolso / cambio de producto",
         "keywords": "devolucion, reembolso, retorno, cambio, garantia, danado, producto incorrecto",

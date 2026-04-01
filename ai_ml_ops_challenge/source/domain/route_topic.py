@@ -43,6 +43,13 @@ def _keyword_topic_override(question: str) -> str:
     if any(term in lowered for term in platform_terms):
         return "CUENTA"
 
+    returns_terms = [
+        "devolucion", "devolución", "devolver", "reembolso", "cambio de producto",
+        "quiero devolver", "producto danado", "producto dañado",
+    ]
+    if any(term in lowered for term in returns_terms):
+        return "DEVOLUCIONES"
+
     operations_purchase_terms = [
         "como comprar", "cómo comprar", "hacer una compra", "checkout",
         "carrito", "confirmar compra", "pasos para comprar",
@@ -58,6 +65,30 @@ def _keyword_topic_override(question: str) -> str:
         return "PEDIDOS"
 
     return ""
+
+
+def _returns_from_conversation_context(state: GraphState) -> bool:
+    """Infer returns continuity from short replies and recent assistant prompts."""
+    question = str(state.get("question", "")).strip().lower()
+    if question not in {"si", "sí", "ok", "dale", "1", "2", "3", "4", "5"}:
+        return False
+
+    for message in reversed(state.get("messages", []) or []):
+        if str(message.get("role", "")).lower() != "assistant":
+            continue
+        content = str(message.get("content", "")).lower()
+        if (
+            "motivo de la devolucion" in content
+            or "motivo de la devolución" in content
+            or "numero de pedido" in content
+            or "número de pedido" in content
+            or "devolucion" in content
+            or "devolución" in content
+        ):
+            return True
+        break
+
+    return False
 
 
 async def route_topic(state: GraphState) -> Dict[str, Any]:
@@ -78,7 +109,12 @@ async def route_topic(state: GraphState) -> Dict[str, Any]:
     fallback_topic = "FUERA_DE_ALCANCE"
     fallback_agent = topic_agent_map.get(fallback_topic, "handle_general")
 
-    override_topic = _keyword_topic_override(state.get("question", ""))
+    if state.get("is_return_in_progress"):
+        override_topic = "DEVOLUCIONES"
+    elif _returns_from_conversation_context(state):
+        override_topic = "DEVOLUCIONES"
+    else:
+        override_topic = _keyword_topic_override(state.get("question", ""))
     if override_topic and override_topic in VALID_TOPICS:
         selected_topic = override_topic
         selected_agent = topic_agent_map.get(selected_topic, "handle_general")
