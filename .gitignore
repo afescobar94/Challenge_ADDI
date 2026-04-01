@@ -1,0 +1,4 @@
+.DS_Store
+.vscode/
+ai_ml_ops_challenge/.env
+ai_ml_ops_challenge/.venv/
