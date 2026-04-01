@@ -10,6 +10,12 @@ from typing import Any, Dict, List
 from source.application.state import GraphState
 from source.adapters.chains.router_chain import get_router_chain
 from source.adapters.utils.knowledge_base import SCENARIO_KNOWLEDGE_BASE, VALID_TOPICS
+from source.adapters.utils.guardrails import (
+    has_auth_secret,
+    has_sensitive_payment_data,
+    is_competitor_comparison,
+    is_obviously_out_of_scope,
+)
 
 
 def _safe_previous_topics(raw_topics: Any) -> List[str]:
@@ -91,6 +97,19 @@ def _returns_from_conversation_context(state: GraphState) -> bool:
     return False
 
 
+def _guardrail_topic_override(question: str) -> str:
+    """Return an early topic override for security and policy guardrails."""
+    if has_sensitive_payment_data(question):
+        return "PAGOS"
+    if has_auth_secret(question):
+        return "CUENTA"
+    if is_competitor_comparison(question):
+        return "PRODUCTOS"
+    if is_obviously_out_of_scope(question):
+        return "FUERA_DE_ALCANCE"
+    return ""
+
+
 async def route_topic(state: GraphState) -> Dict[str, Any]:
     """Route the current question to a topic and agent.
 
@@ -109,16 +128,17 @@ async def route_topic(state: GraphState) -> Dict[str, Any]:
     fallback_topic = "FUERA_DE_ALCANCE"
     fallback_agent = topic_agent_map.get(fallback_topic, "handle_general")
 
+    question = state.get("question", "")
     if state.get("is_return_in_progress"):
         override_topic = "DEVOLUCIONES"
     elif _returns_from_conversation_context(state):
         override_topic = "DEVOLUCIONES"
     else:
-        override_topic = _keyword_topic_override(state.get("question", ""))
+        override_topic = _guardrail_topic_override(question) or _keyword_topic_override(question)
     if override_topic and override_topic in VALID_TOPICS:
         selected_topic = override_topic
         selected_agent = topic_agent_map.get(selected_topic, "handle_general")
-        router_reasoning = "Keyword override applied for high-priority topic safety."
+        router_reasoning = "Guardrail/keyword override applied for policy-safe routing."
     else:
         try:
             chain = get_router_chain()
@@ -129,7 +149,7 @@ async def route_topic(state: GraphState) -> Dict[str, Any]:
                 "last_topic_selected": last_topic,
                 "previous_topics": previous_topics,
                 "messages": state.get("messages", []),
-                "question": state.get("question", ""),
+                "question": question,
             })
 
             selected_topic = result.selected_topic if result.selected_topic in VALID_TOPICS else fallback_topic

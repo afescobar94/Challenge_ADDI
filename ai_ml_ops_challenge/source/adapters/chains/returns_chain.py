@@ -34,6 +34,7 @@ You are Emporyum Tech's specialized returns assistant.
 - Keep response in natural Colombian Spanish.
 - Keep response concise and actionable (2-6 sentences).
 - Do not invent policies, deadlines, or order data.
+- Never request or repeat OTP codes, passwords, full card numbers, CVV, or PIN.
 - If the draft indicates escalation, keep clear escalation wording.
 """
 

@@ -6,6 +6,7 @@ import re
 from source.application.state import GraphState
 from source.adapters.chains.payments_chain import get_payments_chain
 from source.adapters.utils.data_filter import filter_user_data
+from source.adapters.utils.guardrails import has_auth_secret, has_sensitive_payment_data
 from source.adapters.utils.knowledge_base import SCENARIO_KNOWLEDGE_BASE
 from source.adapters.utils.mock_data import INSTALLMENT_PLANS
 
@@ -107,10 +108,23 @@ async def handle_payments(state: GraphState) -> Dict[str, Any]:
     state["flow"].append("handle_payments")
 
     topic_name = "PAGOS"
+    question = state.get("question", "")
+
+    if has_sensitive_payment_data(question) or has_auth_secret(question):
+        return {
+            "generation": (
+                "Por seguridad, no compartas datos de tarjeta, OTP, claves o contrasenas por chat. "
+                "Usa siempre los canales seguros de la app para gestionar pagos."
+            ),
+            "selected_topic": topic_name,
+            "selected_agent": "handle_payments",
+            "last_topic_selected": topic_name,
+        }
+
     topic_data = SCENARIO_KNOWLEDGE_BASE.get(topic_name, {})
     relevant_fields = topic_data.get("variables", [])
     filtered_data = filter_user_data(state.get("user_data"), relevant_fields)
-    payment_context = _build_payment_context(state.get("question", ""))
+    payment_context = _build_payment_context(question)
     payment_context["outstanding_summary"] = _summarize_outstanding_orders(filtered_data)
 
     try:
@@ -123,7 +137,7 @@ async def handle_payments(state: GraphState) -> Dict[str, Any]:
             "user_data": str(filtered_data),
             "payment_context": str(payment_context),
             "messages": state.get("messages", []),
-            "question": state.get("question", ""),
+            "question": question,
         })
 
         return {

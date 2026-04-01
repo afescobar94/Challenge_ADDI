@@ -5,6 +5,7 @@ from typing import Any, Dict
 from source.application.state import GraphState
 from source.adapters.chains.platform_chain import get_platform_chain
 from source.adapters.utils.data_filter import filter_user_data
+from source.adapters.utils.guardrails import has_auth_secret
 from source.adapters.utils.knowledge_base import SCENARIO_KNOWLEDGE_BASE
 
 
@@ -38,6 +39,19 @@ async def handle_platform(state: GraphState) -> Dict[str, Any]:
     state["flow"].append("handle_platform")
 
     topic_name = "CUENTA"
+    question = state.get("question", "")
+
+    if has_auth_secret(question):
+        return {
+            "generation": (
+                "No compartas codigos OTP, contrasenas ni claves por chat. "
+                "Emporyum Tech nunca solicita esa informacion por este canal."
+            ),
+            "selected_topic": topic_name,
+            "selected_agent": "handle_platform",
+            "last_topic_selected": topic_name,
+        }
+
     topic_data = SCENARIO_KNOWLEDGE_BASE.get(topic_name, {})
     relevant_fields = topic_data.get("variables", [])
 
@@ -54,7 +68,7 @@ async def handle_platform(state: GraphState) -> Dict[str, Any]:
             "user_data": str(filtered_data),
             "platform_context": str(platform_context),
             "messages": state.get("messages", []),
-            "question": state.get("question", ""),
+            "question": question,
         })
 
         return {

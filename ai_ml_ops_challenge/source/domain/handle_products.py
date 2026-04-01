@@ -6,6 +6,7 @@ import re
 from source.application.state import GraphState
 from source.adapters.chains.products_chain import get_products_chain
 from source.adapters.utils.data_filter import filter_user_data
+from source.adapters.utils.guardrails import is_competitor_comparison
 from source.adapters.utils.knowledge_base import SCENARIO_KNOWLEDGE_BASE
 from source.adapters.utils.mock_data import MOCK_CATALOG
 
@@ -69,7 +70,19 @@ async def handle_products(state: GraphState) -> Dict[str, Any]:
     topic_data = SCENARIO_KNOWLEDGE_BASE.get(topic_name, {})
     relevant_fields = topic_data.get("variables", [])
     filtered_data = filter_user_data(state.get("user_data"), relevant_fields)
-    catalog_candidates = _build_catalog_candidates(filtered_data, state.get("question", ""))
+    question = state.get("question", "")
+    catalog_candidates = _build_catalog_candidates(filtered_data, question)
+
+    if is_competitor_comparison(question):
+        return {
+            "generation": (
+                "No puedo comparar precios con otros comercios, "
+                "pero si quieres te muestro nuestras promociones activas."
+            ),
+            "selected_topic": topic_name,
+            "selected_agent": "handle_products",
+            "last_topic_selected": topic_name,
+        }
 
     try:
         chain = get_products_chain()
@@ -81,7 +94,7 @@ async def handle_products(state: GraphState) -> Dict[str, Any]:
             "user_data": str(filtered_data),
             "catalog_candidates": str(catalog_candidates),
             "messages": state.get("messages", []),
-            "question": state.get("question", ""),
+            "question": question,
         })
 
         return {

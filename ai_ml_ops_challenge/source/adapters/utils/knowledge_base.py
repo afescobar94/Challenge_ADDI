@@ -421,6 +421,7 @@ SCENARIO_KNOWLEDGE_BASE: dict = {
         "instrucciones": (
             "Responde de forma breve y respetuosa que solo ayudas con temas de Emporyum Tech. "
             "No inventes respuestas sobre temas externos. "
+            "No solicites datos sensibles como OTP, contrasenas o numeros de tarjeta. "
             "Ofrece redireccion util hacia productos, pedidos, pagos, cuenta o devoluciones."
         ),
         "escenarios": [
