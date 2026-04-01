@@ -24,6 +24,20 @@ def _safe_previous_topics(raw_topics: Any) -> List[str]:
     return normalized
 
 
+def _keyword_topic_override(question: str) -> str:
+    """Return a high-priority topic override for safety-critical intents."""
+    lowered = (question or "").lower()
+
+    payments_terms = [
+        "tarjeta", "otp", "cuotas", "pago", "pagos", "debo", "saldo",
+        "interes", "intereses", "efecty", "pse", "a la mano",
+    ]
+    if any(term in lowered for term in payments_terms):
+        return "PAGOS"
+
+    return ""
+
+
 async def route_topic(state: GraphState) -> Dict[str, Any]:
     """Route the current question to a topic and agent.
 
@@ -42,27 +56,33 @@ async def route_topic(state: GraphState) -> Dict[str, Any]:
     fallback_topic = "FUERA_DE_ALCANCE"
     fallback_agent = topic_agent_map.get(fallback_topic, "handle_general")
 
-    try:
-        chain = get_router_chain()
-        result = await chain.ainvoke({
-            "allowed_topics": VALID_TOPICS,
-            "topic_agent_map": topic_agent_map,
-            "user_data_summary": str(state.get("user_data_summary") or {}),
-            "last_topic_selected": last_topic,
-            "previous_topics": previous_topics,
-            "messages": state.get("messages", []),
-            "question": state.get("question", ""),
-        })
+    override_topic = _keyword_topic_override(state.get("question", ""))
+    if override_topic and override_topic in VALID_TOPICS:
+        selected_topic = override_topic
+        selected_agent = topic_agent_map.get(selected_topic, "handle_general")
+        router_reasoning = "Keyword override applied for high-priority topic safety."
+    else:
+        try:
+            chain = get_router_chain()
+            result = await chain.ainvoke({
+                "allowed_topics": VALID_TOPICS,
+                "topic_agent_map": topic_agent_map,
+                "user_data_summary": str(state.get("user_data_summary") or {}),
+                "last_topic_selected": last_topic,
+                "previous_topics": previous_topics,
+                "messages": state.get("messages", []),
+                "question": state.get("question", ""),
+            })
 
-        selected_topic = result.selected_topic if result.selected_topic in VALID_TOPICS else fallback_topic
-        selected_agent = result.selected_agent or topic_agent_map.get(selected_topic, "handle_general")
-        router_reasoning = result.router_reasoning
+            selected_topic = result.selected_topic if result.selected_topic in VALID_TOPICS else fallback_topic
+            selected_agent = result.selected_agent or topic_agent_map.get(selected_topic, "handle_general")
+            router_reasoning = result.router_reasoning
 
-    except Exception as e:
-        print(f"[ERROR] route_topic failed: {e}")
-        selected_topic = fallback_topic
-        selected_agent = fallback_agent
-        router_reasoning = "Router fallback due to processing error."
+        except Exception as e:
+            print(f"[ERROR] route_topic failed: {e}")
+            selected_topic = fallback_topic
+            selected_agent = fallback_agent
+            router_reasoning = "Router fallback due to processing error."
 
     # Force consistency with KB mapping when model output drifts.
     kb_agent = SCENARIO_KNOWLEDGE_BASE.get(selected_topic, {}).get("responsible_agent", "handle_general")

@@ -42,7 +42,7 @@ SCENARIO_KNOWLEDGE_BASE: dict = {
         "variables": ["primer_nombre", "orders", "account_status"],
     },
     "PRODUCTOS": {
-        "responsible_agent": "handle_general",
+        "responsible_agent": "handle_products",
         "contexto": "Product discovery, recommendations, promotions, availability, and catalog questions.",
         "pregunta": "recomiendame algo / que promociones hay / tienes X producto / esta disponible",
         "keywords": "productos, recomendacion, promo, descuento, catalogo, stock, disponible, agotado, presupuesto",
@@ -108,7 +108,7 @@ SCENARIO_KNOWLEDGE_BASE: dict = {
         ],
     },
     "PAGOS": {
-        "responsible_agent": "handle_general",
+        "responsible_agent": "handle_payments",
         "contexto": "Payment methods, installments, rates, outstanding balances, and payment operations.",
         "pregunta": "como pago / cuotas / interes / cuanto debo / pago anticipado / comprobante",
         "keywords": "pagos, cuotas, interes, saldo, deuda, PSE, tarjeta, Efecty, A la Mano, mora, comprobante",
