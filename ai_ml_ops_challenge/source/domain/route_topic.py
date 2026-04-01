@@ -29,11 +29,33 @@ def _keyword_topic_override(question: str) -> str:
     lowered = (question or "").lower()
 
     payments_terms = [
-        "tarjeta", "otp", "cuotas", "pago", "pagos", "debo", "saldo",
+        "tarjeta", "cuotas", "pago", "pagos", "debo", "saldo",
         "interes", "intereses", "efecty", "pse", "a la mano",
     ]
     if any(term in lowered for term in payments_terms):
         return "PAGOS"
+
+    platform_terms = [
+        "iniciar sesion", "login", "contrasena", "contraseña", "2fa",
+        "cuenta bloqueada", "notificaciones", "app", "otp", "phishing",
+        "correo", "telefono", "teléfono",
+    ]
+    if any(term in lowered for term in platform_terms):
+        return "CUENTA"
+
+    operations_purchase_terms = [
+        "como comprar", "cómo comprar", "hacer una compra", "checkout",
+        "carrito", "confirmar compra", "pasos para comprar",
+    ]
+    if any(term in lowered for term in operations_purchase_terms):
+        return "COMO_COMPRAR"
+
+    operations_order_terms = [
+        "pedido", "envio", "envío", "entrega", "seguimiento", "rastreo",
+        "donde esta mi pedido", "dónde está mi pedido", "cancelar pedido",
+    ]
+    if any(term in lowered for term in operations_order_terms):
+        return "PEDIDOS"
 
     return ""
 

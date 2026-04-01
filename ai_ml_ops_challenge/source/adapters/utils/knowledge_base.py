@@ -179,7 +179,7 @@ SCENARIO_KNOWLEDGE_BASE: dict = {
         ],
     },
     "PEDIDOS": {
-        "responsible_agent": "handle_general",
+        "responsible_agent": "handle_operations",
         "contexto": "Order status, shipping timelines, tracking, and cancellations.",
         "pregunta": "donde esta mi pedido / estado del pedido / cuando llega / cancelar pedido",
         "keywords": "pedido, estado, seguimiento, envio, entrega, cancelacion, confirmado, en transito",
@@ -239,6 +239,48 @@ SCENARIO_KNOWLEDGE_BASE: dict = {
             "delivery_address_city",
             "email_verified",
             "phone_verified",
+        ],
+    },
+    "COMO_COMPRAR": {
+        "responsible_agent": "handle_operations",
+        "contexto": "Guidance for the end-to-end purchase flow in Emporyum Tech.",
+        "pregunta": "como comprar / como hago una compra / pasos para comprar",
+        "keywords": "comprar, checkout, carrito, confirmar compra, pago, mis pedidos",
+        "instrucciones": (
+            "Explica el flujo de compra de forma clara y secuencial: verificar cuenta, explorar catalogo, agregar al carrito, "
+            "elegir metodo de pago, seleccionar cuotas si aplica, confirmar compra, revisar correo de confirmacion y hacer seguimiento. "
+            "Si el usuario no tiene email/telefono verificado, indicar que debe verificar antes de comprar. "
+            "Aclarar que los tiempos de entrega se expresan en dias habiles. "
+            "Si pregunta por cancelacion, indicar que es posible antes de ENVIADO."
+        ),
+        "escenarios": [
+            {
+                "id": 1,
+                "condicion": "Usuario solicita pasos generales de compra",
+                "respuesta_sugerida": "Te explico paso a paso como comprar en Emporyum Tech desde el catalogo hasta el seguimiento de entrega.",
+            },
+            {
+                "id": 2,
+                "condicion": "Usuario con verificacion incompleta",
+                "respuesta_sugerida": "Antes de comprar, debes tener correo y telefono verificados para completar el proceso correctamente.",
+            },
+            {
+                "id": 3,
+                "condicion": "Usuario pregunta por cuotas durante compra",
+                "respuesta_sugerida": "En checkout puedes elegir cuotas si tu compra y metodo de pago cumplen las condiciones del plan.",
+            },
+            {
+                "id": 4,
+                "condicion": "Usuario pregunta como rastrear tras compra",
+                "respuesta_sugerida": "Despues de confirmar, revisa el correo y sigue tu pedido en Mis Pedidos dentro de la app.",
+            },
+        ],
+        "variables": [
+            "primer_nombre",
+            "email_verified",
+            "phone_verified",
+            "delivery_address_city",
+            "orders",
         ],
     },
     "DEVOLUCIONES": {
@@ -306,7 +348,7 @@ SCENARIO_KNOWLEDGE_BASE: dict = {
         ],
     },
     "CUENTA": {
-        "responsible_agent": "handle_general",
+        "responsible_agent": "handle_platform",
         "contexto": "Account management, authentication, app troubleshooting, and platform/security policies.",
         "pregunta": "mi cuenta / cambiar correo / cambiar telefono / no puedo entrar / app falla",
         "keywords": "cuenta, perfil, contrasena, 2FA, bloqueada, phishing, OTP, app lenta, notificaciones",
