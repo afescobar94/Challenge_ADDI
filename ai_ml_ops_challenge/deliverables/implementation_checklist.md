@@ -105,10 +105,10 @@
 - Risks and follow-up items
 
 ## 4. Global Completion Checklist
-- [ ] All non-modifiable files were respected
-- [ ] Bot routes by topic and agent
-- [ ] Returns multi-step flow is implemented
-- [ ] Security/compliance edge cases are covered
-- [ ] `deliverables/architecture.md` is finalized
-- [ ] `deliverables/deployment_answers.md` is finalized
-- [ ] End-to-end conversation validated with `tests/inline.py`
+- [x] All non-modifiable files were respected
+- [x] Bot routes by topic and agent
+- [x] Returns multi-step flow is implemented
+- [x] Security/compliance edge cases are covered
+- [x] `deliverables/architecture.md` is finalized
+- [x] `deliverables/deployment_answers.md` is finalized
+- [x] End-to-end conversation validated with `tests/inline.py`
